@@ -2,59 +2,65 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Настольная игра 2026 ONLINE</title>
-    <!-- Подключение библиотек Firebase (версия 2026 года) -->
+    <title>Настольная игра 2026: Online Lobby</title>
+    <!-- Firebase SDK (обязательно в этом порядке) -->
     <script src="www.gstatic.com"></script>
     <script src="www.gstatic.com"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background: #2c3e50; color: white; margin: 0; padding: 20px; }
         .screen { background: #34495e; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); min-width: 400px; }
-        .player-list { margin: 20px 0; text-align: left; background: #1a252f; padding: 15px; border-radius: 10px; }
-        .player-item { padding: 8px 0; border-bottom: 1px solid #2c3e50; display: flex; justify-content: space-between; }
-        .ready-badge { background: #27ae60; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-        
-        #game-area { display: none; gap: 20px; align-items: flex-start; }
+        .hidden { display: none !important; }
+        input { padding: 12px; border-radius: 6px; border: none; width: 250px; margin-bottom: 15px; font-size: 16px; }
+        button { padding: 12px 24px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; transition: 0.2s; }
+        button:hover { background: #2980b9; }
+        .room-btn { background: #27ae60; width: 100%; margin-top: 10px; }
+        #player-list { text-align: left; background: #1a252f; padding: 15px; border-radius: 10px; margin: 15px 0; }
+        /* Игровое поле из прошлых версий */
         #board { display: grid; grid-template-columns: repeat(10, 70px); gap: 5px; background: #34495e; padding: 15px; border-radius: 10px; }
         .cell { width: 70px; height: 70px; background: #ecf0f1; color: #2c3e50; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 5px; position: relative; }
-        
-        .pawn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold; position: absolute; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        
-        button { padding: 12px 24px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 10px; }
-        button:disabled { background: #7f8c8d; cursor: not-allowed; }
-        input { padding: 10px; border-radius: 5px; border: none; width: 200px; margin-bottom: 10px; }
-        
-        /* Спец-клетки */
-        .trap { background: #ff80ab !important; } .boost { background: #b9f6ca !important; }
-        .finish { background: #e74c3c !important; color: white; } .start { background: #27ae60 !important; color: white; }
     </style>
 </head>
 <body>
 
-    <h1 style="margin-bottom: 10px;">PRO Game 2026 Online</h1>
-    <div id="room-link" style="margin-bottom: 20px; font-size: 14px; color: #bdc3c7;"></div>
+    <h1 style="margin-bottom: 30px;">PRO Game 2026 Online</h1>
 
-    <!-- ЭКРАН ЛОББИ -->
-    <div id="lobby" class="screen">
-        <h2 id="room-name">Комната: ...</h2>
-        <input type="text" id="nameInput" placeholder="Ваше имя">
-        <div class="player-list" id="player-list"></div>
-        <button id="readyBtn" onclick="toggleReady()">Я ГОТОВ</button>
-        <button id="startBtn" onclick="startGame()" style="display:none; background:#27ae60;">НАЧАТЬ ИГРУ</button>
+    <!-- 1. ГЛАВНОЕ МЕНЮ (ВВОД ИМЕНИ) -->
+    <div id="menu-screen" class="screen">
+        <h2>Добро пожаловать!</h2>
+        <input type="text" id="userName" placeholder="Введите ваше имя">
+        <br>
+        <button onclick="showRoomSelection()">Продолжить</button>
     </div>
 
-    <!-- ИГРОВОЕ ПОЛЕ -->
-    <div id="game-area">
+    <!-- 2. ВЫБОР КОМНАТЫ -->
+    <div id="room-screen" class="screen hidden">
+        <h2 id="hello-user">Привет!</h2>
+        <button class="room-btn" onclick="createRoom()">СОЗДАТЬ НОВУЮ КОМНАТУ</button>
+        <div style="margin: 20px 0; opacity: 0.5;">— ИЛИ —</div>
+        <input type="text" id="joinRoomId" placeholder="Введите ID комнаты">
+        <button onclick="joinRoom()">ВОЙТИ</button>
+    </div>
+
+    <!-- 3. ЛОББИ ОЖИДАНИЯ -->
+    <div id="lobby-screen" class="screen hidden">
+        <h2 id="display-room-id">Комната: ...</h2>
+        <div id="player-list"></div>
+        <button id="readyBtn" onclick="toggleReady()">Я ГОТОВ</button>
+        <button id="startBtn" class="hidden" style="background:#27ae60;" onclick="sendStartSignal()">НАЧАТЬ ИГРУ</button>
+        <p style="font-size: 12px; color: #bdc3c7; margin-top: 15px;">Отправьте ID комнаты другу для входа</p>
+    </div>
+
+    <!-- 4. ИГРОВАЯ ЗОНА -->
+    <div id="game-area" class="hidden">
+        <!-- Поле и управление здесь -->
         <div id="board"></div>
-        <div class="side-panel" style="background:#34495e; padding:20px; border-radius:10px; min-width:250px; text-align:center;">
-            <div id="turn-status" style="font-size: 18px; margin-bottom: 15px; font-weight: bold;"></div>
-            <div id="dice-val" style="font-size: 50px; margin: 10px 0;">?</div>
-            <button id="diceBtn" onclick="handleRoll()">БРОСИТЬ КУБИК</button>
-            <div id="order-info" style="margin-top:20px; font-size:12px; text-align:left; border-top: 1px solid #455a64; padding-top:10px;"></div>
+        <div style="margin-top: 20px; text-align: center;">
+            <div id="turn-info">Ожидание хода...</div>
+            <button id="diceBtn" onclick="rollDice()">БРОСИТЬ КУБИК</button>
         </div>
     </div>
 
     <script>
-        // Конфигурация Firebase пользователя
         const firebaseConfig = {
             apiKey: "AIzaSyCIBxBjacSQcuB6gJvVIBbIwmiM1Aq988k",
             authDomain: "game-e7b33.firebaseapp.com",
@@ -62,202 +68,99 @@
             projectId: "game-e7b33",
             storageBucket: "game-e7b33.firebasestorage.app",
             messagingSenderId: "32405712618",
-            appId: "1:32405712618:web:81a8ba0a3bb6a7366c3193",
-            measurementId: "G-MZ6KFC08QS"
+            appId: "1:32405712618:web:81a8ba0a3bb6a7366c3193"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        
+        let myName = "";
+        let currentRoomId = "";
+        let myId = 'u' + Math.random().toString(36).substring(2, 9);
 
-        // Идентификация комнаты и игрока
-        const urlParams = new URLSearchParams(window.location.search);
-        let roomId = urlParams.get('r');
-        if (!roomId) {
-            roomId = Math.random().toString(36).substring(2, 8);
-            window.history.pushState({}, '', `?r=${roomId}`);
+        // Показать меню выбора комнат
+        function showRoomSelection() {
+            myName = document.getElementById('userName').value.trim();
+            if (!myName) return alert("Введите имя!");
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('room-screen').classList.remove('hidden');
+            document.getElementById('hello-user').innerText = `Привет, ${myName}!`;
         }
-        document.getElementById('room-link').innerText = "Ссылка для друзей: " + window.location.href;
-        document.getElementById('room-name').innerText = "Комната: " + roomId;
 
-        let myId = localStorage.getItem('my_uid') || 'u' + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem('my_uid', myId);
+        // Создать комнату
+        function createRoom() {
+            const id = Math.random().toString(36).substring(2, 7).toUpperCase();
+            enterRoom(id);
+        }
 
-        const roomRef = db.ref('rooms/' + roomId);
-        let players = {};
-        let gameState = { status: 'lobby', turnIndex: 0 };
-        const colors = ['#e91e63', '#2196f3', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4', '#f1c40f', '#e67e22', '#1abc9c'];
-
-        // СИНХРОНИЗАЦИЯ
-        roomRef.on('value', (snap) => {
-            const data = snap.val();
-            if (!data) { joinRoom(); return; }
-            
-            players = data.players || {};
-            gameState = data.state || { status: 'lobby' };
-
-            if (gameState.status === 'lobby') {
-                updateLobbyUI();
-            } else {
-                initGameBoard();
-                updateGameUI();
-            }
-        });
-
+        // Войти в комнату
         function joinRoom() {
-            let name = document.getElementById('nameInput').value || "Игрок";
-            roomRef.child('players').child(myId).update({
-                name: name,
+            const id = document.getElementById('joinRoomId').value.trim().toUpperCase();
+            if (!id) return alert("Введите ID!");
+            enterRoom(id);
+        }
+
+        function enterRoom(id) {
+            currentRoomId = id;
+            document.getElementById('room-screen').classList.add('hidden');
+            document.getElementById('lobby-screen').classList.remove('hidden');
+            document.getElementById('display-room-id').innerText = "ID КОМНАТЫ: " + id;
+            
+            const roomRef = db.ref('rooms/' + id);
+            
+            // Записываем себя
+            roomRef.child('players').child(myId).set({
+                name: myName,
                 ready: false,
-                pos: 0,
-                orderRoll: 0,
                 joinedAt: Date.now()
+            });
+
+            // Слушаем обновления
+            roomRef.on('value', snap => {
+                const data = snap.val();
+                if (!data) return;
+                updateLobbyUI(data.players, data.status);
+                if (data.status === 'playing') startGameUI();
             });
         }
 
-        function toggleReady() {
-            let name = document.getElementById('nameInput').value || "Игрок " + myId.substring(0,3);
-            let isReady = players[myId] ? !players[myId].ready : true;
-            roomRef.child('players').child(myId).update({ ready: isReady, name: name });
-        }
-
-        function updateLobbyUI() {
-            document.getElementById('lobby').style.display = 'block';
-            document.getElementById('game-area').style.display = 'none';
+        function updateLobbyUI(players, status) {
             const list = document.getElementById('player-list');
-            list.innerHTML = '';
-            
-            let readyCount = 0;
-            let total = 0;
+            list.innerHTML = "";
+            let allReady = true;
+            let count = 0;
             let firstPlayer = null;
 
             for (let id in players) {
-                total++;
-                if (players[id].ready) readyCount++;
-                if (!firstPlayer || players[id].joinedAt < players[firstPlayer].joinedAt) firstPlayer = id;
-                
-                list.innerHTML += `<div class="player-item">
-                    ${players[id].name} ${id === myId ? '(Вы)' : ''}
-                    ${players[id].ready ? '<span class="ready-badge">ГОТОВ</span>' : '<span>...</span>'}
-                </div>`;
-            }
-
-            // Только первый зашедший видит кнопку старта, если все готовы
-            if (myId === firstPlayer && readyCount === total && total >= 1) {
-                document.getElementById('startBtn').style.display = 'inline-block';
-            } else {
-                document.getElementById('startBtn').style.display = 'none';
-            }
-        }
-
-        function startGame() {
-            roomRef.child('state').set({
-                status: 'ordering', // Этап определения очереди
-                turnIndex: 0
-            });
-        }
-
-        function initGameBoard() {
-            document.getElementById('lobby').style.display = 'none';
-            document.getElementById('game-area').style.display = 'flex';
-            const board = document.getElementById('board');
-            if (board.children.length > 0) return;
-
-            for (let i = 0; i < 50; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.id = 'cell-' + i;
-                if (i === 0) { cell.innerText = "СТАРТ"; cell.classList.add('start'); }
-                else if (i === 49) { cell.innerText = "ФИНИШ"; cell.classList.add('finish'); }
-                else {
-                    cell.innerHTML = `<span style="opacity:0.3; font-size:10px; position:absolute; top:2px; left:4px;">${i}</span>`;
-                    // Простая генерация спец-клеток
-                    if (i % 7 === 0) cell.classList.add('trap');
-                    if (i % 11 === 0) cell.classList.add('boost');
-                }
-                board.appendChild(cell);
-            }
-        }
-
-        function updateGameUI() {
-            // Очистка и отрисовка фишек
-            document.querySelectorAll('.pawn').forEach(p => p.remove());
-            let index = 0;
-            for (let id in players) {
+                count++;
                 const p = players[id];
-                const pawn = document.createElement('div');
-                pawn.className = 'pawn';
-                pawn.style.backgroundColor = colors[index % colors.length];
-                pawn.innerText = (p.name[0] || 'P').toUpperCase();
-                pawn.title = p.name;
-                document.getElementById('cell-' + (p.pos || 0)).appendChild(pawn);
-                index++;
+                if (!p.ready) allReady = false;
+                if (!firstPlayer || p.joinedAt < players[firstPlayer].joinedAt) firstPlayer = id;
+
+                list.innerHTML += `<div>${p.name} ${p.ready ? '✅' : '⏳'}</div>`;
             }
 
-            const status = document.getElementById('turn-status');
-            const btn = document.getElementById('diceBtn');
-            const orderDiv = document.getElementById('order-info');
-
-            // Порядок игроков (сортировка по броску на очерёдность)
-            const sortedIds = Object.keys(players).sort((a,b) => {
-                if (players[b].orderRoll !== players[a].orderRoll) {
-                    return players[b].orderRoll - players[a].orderRoll;
-                }
-                return players[a].joinedAt - players[b].joinedAt;
-            });
-
-            if (gameState.status === 'ordering') {
-                status.innerText = "Бросок на очерёдность хода";
-                btn.disabled = players[myId].orderRoll > 0;
-                orderDiv.innerHTML = "<b>Результаты:</b><br>" + sortedIds.map(id => `${players[id].name}: ${players[id].orderRoll || '?'}`).join('<br>');
-                
-                // Если все бросили, переходим к игре
-                if (sortedIds.every(id => players[id].orderRoll > 0)) {
-                    let firstPlayer = sortedIds[0];
-                    if (myId === firstPlayer) {
-                        setTimeout(() => {
-                            roomRef.child('state').update({ status: 'playing', turnIndex: 0 });
-                        }, 2000);
-                    }
-                }
+            if (myId === firstPlayer && allReady && count >= 1) {
+                document.getElementById('startBtn').classList.remove('hidden');
             } else {
-                const activeId = sortedIds[gameState.turnIndex];
-                status.innerText = (activeId === myId) ? "ВАШ ХОД!" : "Ходит: " + players[activeId].name;
-                status.style.color = (activeId === myId) ? "#f1c40f" : "white";
-                btn.disabled = (activeId !== myId);
-                orderDiv.innerHTML = "<b>Очерёдность:</b><br>" + sortedIds.map((id, i) => `${i+1}. ${players[id].name} ${i === gameState.turnIndex ? '⬅️' : ''}`).join('<br>');
+                document.getElementById('startBtn').classList.add('hidden');
             }
         }
 
-        async function handleRoll() {
-            const roll = Math.floor(Math.random() * 6) + 1;
-            document.getElementById('dice-val').innerText = roll;
-            const btn = document.getElementById('diceBtn');
-            btn.disabled = true;
-
-            if (gameState.status === 'ordering') {
-                roomRef.child('players').child(myId).update({ orderRoll: roll });
-            } else {
-                let curPos = players[myId].pos || 0;
-                let nextPos = curPos + roll;
-                
-                // Логика полей
-                if (nextPos % 7 === 0 && nextPos !== 0) nextPos = Math.max(0, nextPos - 3);
-                if (nextPos % 11 === 0) nextPos = Math.min(49, nextPos + 3);
-                if (nextPos >= 49) nextPos = 49;
-
-                await roomRef.child('players').child(myId).update({ pos: nextPos });
-
-                if (nextPos === 49) {
-                    alert("ПОЗДРАВЛЯЕМ! ВЫ ПОБЕДИЛИ!");
-                    roomRef.remove();
-                    location.reload();
-                } else {
-                    let nextIdx = (gameState.turnIndex + 1) % Object.keys(players).length;
-                    roomRef.child('state').update({ turnIndex: nextIdx });
-                }
-            }
+        function toggleReady() {
+            const ready = players[myId] ? !players[myId].ready : true; // упрощенно
+            db.ref('rooms/' + currentRoomId + '/players/' + myId).update({ ready: true });
         }
 
+        function sendStartSignal() {
+            db.ref('rooms/' + currentRoomId).update({ status: 'playing' });
+        }
+
+        function startGameUI() {
+            document.getElementById('lobby-screen').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+            // Здесь ваша логика отрисовки поля
+        }
     </script>
 </body>
 </html>
